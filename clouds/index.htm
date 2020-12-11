@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<!-- saved from url=(0050)http://www.mrdoob.com/lab/javascript/webgl/clouds/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Clouds</title>
+		<meta charset="utf-8">
+		<style type="text/css">
+
+			body {
+				background-color: #326696;
+				margin: 0px;
+				overflow: hidden;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+				text-align:center;
+			}
+
+			a {
+				color:#0078ff;
+			}
+
+		</style>
+		
+
+				
+	</head>
+	<body>
+
+
+		<script type="text/javascript" src="js/three.min.js"></script>
+		<script type="text/javascript" src="js/Detector.js"></script>
+	
+
+		<script id="vs" type="x-shader/x-vertex">
+
+			varying vec2 vUv;
+
+			void main() {
+
+				vUv = uv;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			}
+
+		</script>
+
+		<script id="fs" type="x-shader/x-fragment">
+
+			uniform sampler2D map;
+
+			uniform vec3 fogColor;
+			uniform float fogNear;
+			uniform float fogFar;
+
+			varying vec2 vUv;
+
+			void main() {
+
+				float depth = gl_FragCoord.z / gl_FragCoord.w;
+				float fogFactor = smoothstep( fogNear, fogFar, depth );
+
+				gl_FragColor = texture2D( map, vUv );
+				gl_FragColor.w *= pow( gl_FragCoord.z, 20.0 );
+				gl_FragColor = mix( gl_FragColor, vec4( fogColor, gl_FragColor.w ), fogFactor );
+
+			}
+
+		</script>
+
+		<script type="text/javascript">
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var container;
+			var allMaterials = [];
+			var camera, scene, renderer;
+			var mesh, geometry, material;
+
+			var mouseX = 0, mouseY = 0;
+			var morph, morphs = [];
+			var xMod = 0;
+			var zMod = 1;
+			var start_time = Date.now();
+
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+
+			init();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				// Bg gradient
+
+				var canvas = document.createElement( 'canvas' );
+				canvas.width = 32;
+				canvas.height = window.innerHeight;
+
+				var context = canvas.getContext( '2d' );
+
+				var gradient = context.createLinearGradient( 0, 0, 0, canvas.height );
+				gradient.addColorStop(0, "#1e4877");
+				gradient.addColorStop(0.5, "#4584b4");
+
+				context.fillStyle = gradient;
+				context.fillRect(0, 0, canvas.width, canvas.height);
+
+				container.style.background = 'url(' + canvas.toDataURL('image/png') + ')';
+				container.style.backgroundSize = '32px 100%';
+
+				//
+
+				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 3000 );
+				camera.position.z = 1800;
+				
+
+				scene = new THREE.Scene();
+				
+				
+				
+				
+					// lights
+
+				var ambient = new THREE.AmbientLight( 0xffffff );
+				ambient.color.setHSL( 0.1, 0.3, 0.2 );
+				scene.add( ambient );
+
+
+				var dirLight = new THREE.DirectionalLight( 0xffffff, 0.125 );
+				dirLight.position.set( 0, -1, 0 ).normalize();
+				scene.add( dirLight );
+
+				dirLight.color.setHSL( 0.1, 0.7, 0.5 );
+
+				// lens flares
+
+				var textureFlare0 = THREE.ImageUtils.loadTexture( "textures/lensflare/lensflare1.png" );
+				var textureFlare2 = THREE.ImageUtils.loadTexture( "textures/lensflare/lensflare2.png" );
+				var textureFlare3 = THREE.ImageUtils.loadTexture( "textures/lensflare/lensflare3.png" );
+
+	    	addLight( 0.55, 0.9, 0.5, 5000, 0, -1000 );
+				addLight( 0.08, 0.8, 0.5,    0, 0, -1000 );
+				addLight( 0.995, 0.5, 0.9, 5000, 5000, -1000 );
+
+				
+				
+				
+
+				geometry = new THREE.Geometry();
+
+				var texture = THREE.ImageUtils.loadTexture( 'cloud10.png', null, animate );
+				texture.magFilter = THREE.LinearMipMapLinearFilter;
+				texture.minFilter = THREE.LinearMipMapLinearFilter;
+
+				var fog = new THREE.Fog( 0x4584b4, - 100, 4000 );
+			
+			
+				
+				//los buildings
+                    var griffith = THREE.ImageUtils.loadTexture("images/griffith2.png", null, animate );
+                    geometry = new THREE.Geometry();
+
+	                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 1100, 283 ) );
+	                 
+
+                    plane.position.x = -400;
+					plane.position.y = 25;
+					plane.position.z = 700;
+				//	plane.rotation.z = Math.random() * Math.PI;
+					plane.scale.x = plane.scale.y =  1 ;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: griffith },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				mesh = new THREE.Mesh( geometry, material );
+					mesh.position.z = 400;
+				scene.add( mesh );
+				
+				
+				
+				var capitol = THREE.ImageUtils.loadTexture("images/capitol.png", null, animate );
+				geometry = new THREE.Geometry();
+					                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 234, 345 ) );
+									 
+
+                    plane.position.x = 1260;
+					plane.position.y = 135;
+					plane.position.z = 300;
+				//	plane.rotation.z = Math.random() * Math.PI;
+				//	plane.scale.x = plane.scale.y =  1.25 ;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: capitol },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				mesh = new THREE.Mesh( geometry, material );
+					mesh.position.z = 1;
+					mesh.position.x = -120;
+				scene.add( mesh );
+				
+				
+				
+				
+var dtla = THREE.ImageUtils.loadTexture("images/downtownlos.png", null, animate );
+
+geometry = new THREE.Geometry();
+			                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 898, 302 ) );
+
+                    plane.position.x = 522;
+					plane.position.y = 80;
+					plane.position.z = 200;
+				//	plane.rotation.z = Math.random() * Math.PI;
+				//	plane.scale.x = plane.scale.y = Math.random() * Math.random() * 1.5 + 0.5;
+				
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+			
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: dtla },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				
+				mesh = new THREE.Mesh( geometry, material );
+					mesh.position.z = -100;
+					mesh.position.x = -120;
+				scene.add( mesh );
+				
+				
+				
+				
+var disney = THREE.ImageUtils.loadTexture("images/disney.png", null, animate );
+geometry = new THREE.Geometry();
+                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 500, 341 ) );
+
+                    plane.position.x = 1127;
+					plane.position.y = 100;
+					plane.position.z = 100;
+				//	plane.rotation.z = Math.random() * Math.PI;
+				//	plane.scale.x = plane.scale.y = Math.random() * Math.random() * 1.5 + 0.5;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: disney },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = 0;
+				mesh.position.x = -120;
+				scene.add( mesh );
+				
+				
+				
+//var sun = THREE.ImageUtils.loadTexture("images/sun.png", null, animate );
+var hollywood = THREE.ImageUtils.loadTexture("images/hollywood-sign.png", null, animate );
+hollywood.magFilter = THREE.LinearMipMapLinearFilter;
+hollywood.minFilter = THREE.LinearMipMapLinearFilter;
+
+geometry = new THREE.Geometry();
+                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 400, 158 ) );
+
+                    plane.position.x = 927;
+					plane.position.y = 150;
+					//plane.position.z = 100;
+				//	plane.rotation.z = Math.random() * Math.PI;
+				//	plane.scale.x = plane.scale.y = Math.random() * Math.random() * 1.5 + 0.5;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: hollywood },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far+500 },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = -399;
+				mesh.position.x = 590;
+				mesh.position.y = -40;
+				scene.add( mesh );
+
+
+var mountainRange = THREE.ImageUtils.loadTexture("images/mountainrange.png", null, animate );
+mountainRange.magFilter = THREE.LinearMipMapLinearFilter;
+mountainRange.minFilter = THREE.LinearMipMapLinearFilter;
+
+geometry = new THREE.Geometry();
+                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 1174, 349 ) );
+
+                    plane.position.x = 927;
+					plane.position.y = 150;
+					//plane.position.z = 100;
+				//	plane.rotation.z = Math.random() * Math.PI;
+				//	plane.scale.x = plane.scale.y = Math.random() * Math.random() * 1.5 + 0.5;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: mountainRange },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = -400;
+				mesh.position.x = -380;
+				scene.add( mesh );
+				
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = -400;
+				mesh.position.x = 860;
+				mesh.position.y = -30;
+				scene.add( mesh );
+
+				
+				geometry = new THREE.Geometry();
+
+				material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: texture },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+
+				plane = new THREE.Mesh( new THREE.PlaneGeometry( 64, 64 ) );
+
+				for ( var i = 0; i < 1600; i++ ) {
+
+					plane.position.x = Math.random() * 3000 - 1500;
+					plane.position.y = - Math.random() * Math.random() * 400 - 30;
+					plane.position.z = i   ;
+					plane.rotation.z = Math.random() * Math.PI;
+					plane.scale.x = plane.scale.y = Math.random() * Math.random() * 1.5 + 1;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+
+				}
+
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = 2 ;
+				scene.add( mesh );
+
+		
+		
+		var bloom = THREE.ImageUtils.loadTexture("images/bloom.png", null, animate );
+
+geometry = new THREE.Geometry();
+                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 1340, 402 ) );
+
+                    plane.position.x = 927;
+					//plane.position.y = 150;
+					//plane.position.z = 100;
+				//	plane.rotation.z = Math.random() * Math.PI;
+				//	plane.scale.x = plane.scale.y = Math.random() * Math.random() * 1.5 + 0.5;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: bloom },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				material.visible = false;
+				allMaterials.push(material);
+				
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = 950;
+				mesh.position.x = 350;
+					mesh.position.y = 60;
+					
+				scene.add( mesh );
+				
+				
+				
+					var palm = THREE.ImageUtils.loadTexture("images/palm.png", null, animate );
+
+geometry = new THREE.Geometry();
+                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 360, 586 ) );
+
+                    plane.position.x = 627;
+					plane.position.y = -90;
+					//plane.position.z = 100;
+				//	plane.rotation.z = Math.random() * Math.PI;
+					plane.scale.x = plane.scale.y =  0.3;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: palm },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				
+				material.visible = false;
+				allMaterials.push(material);
+			
+				plane.position.x =777;
+				//	mesh.position.y = 60;
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+					plane.position.x =927;
+						THREE.GeometryUtils.merge( geometry, plane );
+				//	mesh = new THREE.Mesh( geometry, material );
+			//	mesh.position.z = 1050;
+				//mesh.position.x = 50;
+				//	mesh.position.y = 60;
+					
+			//	scene.add( mesh );
+				
+					mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = 1050;
+				mesh.position.x = -100;
+					mesh.position.y = 60;
+					
+				scene.add( mesh );
+				
+				
+				
+				
+				
+							var zep = THREE.ImageUtils.loadTexture("images/zep2.png", null, animate );
+
+geometry = new THREE.Geometry();
+                 plane = new THREE.Mesh( new THREE.PlaneGeometry( 429, 284 ) );
+
+                    plane.position.x = 1200;
+				//	plane.position.y = -90;
+					//plane.position.z = 100;
+				//	plane.rotation.z = Math.random() * Math.PI;
+					plane.scale.x = plane.scale.y =  0.6;
+
+					THREE.GeometryUtils.merge( geometry, plane );
+					
+								material = new THREE.ShaderMaterial( {
+
+					uniforms: {
+
+						"map": { type: "t", value: zep },
+						"fogColor" : { type: "c", value: fog.color },
+						"fogNear" : { type: "f", value: fog.near },
+						"fogFar" : { type: "f", value: fog.far },
+
+					},
+					vertexShader: document.getElementById( 'vs' ).textContent,
+					fragmentShader: document.getElementById( 'fs' ).textContent,
+					depthWrite: false,
+					depthTest: false,
+					transparent: true
+
+				} );
+				
+				material.visible = false;
+				allMaterials.push(material);
+				
+				mesh = new THREE.Mesh( geometry, material );
+				mesh.position.z = 950;
+			
+					mesh.position.y = 250;
+					scene.add( mesh );
+				
+				
+				
+				
+				
+				function addLight( h, s, l, x, y, z ) {
+
+					var light = new THREE.PointLight( 0xffffff, 1, 1000 );
+					light.color.setHSL( h, s, l );
+					light.position.set( x-220, y+140, z );
+					scene.add( light );
+
+					var flareColor = new THREE.Color( 0xffffff );
+					flareColor.setHSL( h, s, l + 0.5 );
+
+					var lensFlare = new THREE.LensFlare( textureFlare0, 700, 0.0, THREE.AdditiveBlending, flareColor );
+
+					lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+					lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+					lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+
+					lensFlare.add( textureFlare3, 60, 0.6, THREE.AdditiveBlending );
+					lensFlare.add( textureFlare3, 70, 0.7, THREE.AdditiveBlending );
+					lensFlare.add( textureFlare3, 120, 0.9, THREE.AdditiveBlending );
+					lensFlare.add( textureFlare3, 70, 1.0, THREE.AdditiveBlending );
+
+					lensFlare.customUpdateCallback = lensFlareUpdateCallback;
+					lensFlare.position = light.position;
+
+					scene.add( lensFlare );
+
+				}
+				
+					 function lensFlareUpdateCallback( object ) {
+
+				var f, fl = object.lensFlares.length;
+				var flare;
+				var vecX = -object.positionScreen.x * 2;
+				var vecY = -object.positionScreen.y * 2;
+
+
+				for( f = 0; f < fl; f++ ) {
+
+					   flare = object.lensFlares[ f ];
+
+					   flare.x = object.positionScreen.x + vecX * flare.distance;
+					   flare.y = object.positionScreen.y + vecY * flare.distance;
+
+					   flare.rotation = 0;
+
+				}
+
+				object.lensFlares[ 2 ].y += 0.025;
+				object.lensFlares[ 3 ].rotation = object.positionScreen.x * 0.5 + THREE.Math.degToRad( 45 );
+
+			}
+			
+			
+			// MORPHS
+var brd = false;
+				function addMorph( geometry, speed, duration, x, y, z ) {
+
+					var material = new THREE.MeshLambertMaterial( { color: 0xffaa55, morphTargets: true, vertexColors: THREE.FaceColors } );
+
+					var meshAnim = new THREE.MorphAnimMesh( geometry, material );
+
+					meshAnim.speed = speed;
+					meshAnim.duration = duration;
+					meshAnim.time = 600 * Math.random();
+
+					meshAnim.position.set( x, y, z );
+					meshAnim.rotation.y = Math.PI/2;
+
+					meshAnim.castShadow = true;
+					meshAnim.receiveShadow = false;
+
+					scene.add( meshAnim );
+
+					morphs.push( meshAnim );
+
+					renderer.initWebGLObjects( scene );
+
+				}
+				
+		
+
+				function morphColorsToFaceColors( geometry ) {
+
+					if ( geometry.morphColors && geometry.morphColors.length ) {
+
+						var colorMap = geometry.morphColors[ 0 ];
+						
+				//	alert(geometry.morphColors[ 0 ]+ " "+colorMap.colors.length);
+//alert(brd);
+						for ( var i = 0; i < colorMap.colors.length; i ++ ) {
+						
+
+						 	geometry.faces[ i ].color = colorMap.colors[ i ];
+							//geometry.faces[ i ].color.offsetHSL(0.5,0.5,0.5);
+							
+							for (var h in geometry.faces[ i ].color)
+							{
+							
+				//	if(brd)	alert(h+" geometry.faces[ i ].color"+geometry.faces[ i ].color[h]);
+							
+							}
+                            
+                           // color.setRGB(colorMap.colors[ i ].r,colorMap.colors[ i ].g,colorMap.colors[ i ].b);
+							//alert("r "+ colorMap.colors[ i * 3].r+" g "+colorMap.colors[ i * 3].g+ " b "+colorMap.colors[ i * 3].b);
+                            geometry.colorsNeedUpdate = true;
+						}
+
+					}
+
+				}
+
+			
+
+			
+
+				function addMesh( geometry, x, y, z ) {
+
+
+				brd = true;
+				morphColorsToFaceColors( geometry );
+var material1 = new THREE.MeshLambertMaterial( { color: 0xffaa55, morphTargets: false, vertexColors: THREE.FaceColors } );
+					var m1 = new THREE.Mesh( geometry, material1 );
+
+					
+
+					m1.position.set( x, y, z );
+					m1.rotation.z = -Math.PI/8;
+					m1.rotation.x = -Math.PI/2;
+					//m1.rotation.y = Math.PI/2;
+                    m1.scale.x = m1.scale.y = m1.scale.z = 0.4;
+					m1.castShadow = true;
+					m1.receiveShadow = false;
+
+					scene.add( m1 );
+
+					
+
+					renderer.initWebGLObjects( scene );
+
+				}
+				
+
+
+				
+				
+
+				renderer = new THREE.WebGLRenderer( { antialias: false } );
+				
+	
+				
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'click', onDocumentMouseClick, false );
+				
+				window.addEventListener( 'resize', onWindowResize, false );
+				
+		
+
+			}
+
+			function onDocumentMouseMove( event ) {
+
+				mouseX = ( event.clientX - windowHalfX ) * 0.1;
+				mouseY = ( event.clientY - windowHalfY ) * 0.05;
+
+			}
+			
+			
+				function onDocumentMouseClick( event ) {
+                xMod++;
+                if(xMod ==3)zMod = 6;
+				if(xMod > 2) 
+                 {xMod = 0;
+                 
+                 zMod = 1;
+                 }
+				
+
+			}
+
+			function onWindowResize( event ) {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+            var delta = 0.01;
+			var makeVisible = false;
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				//position = ( ( Date.now() - start_time ) * 0.03 ) % 8000;
+                if(camera.position.z < 1900 && !makeVisible) 
+				{
+					
+					makeVisible = true;
+					allMaterials[0].visible = true;
+					allMaterials[1].visible = true;
+					allMaterials[2].visible = true;
+				}
+				                    
+				camera.position.x += ( -250* (zMod-1)+10+ mouseX - (camera.position.x - xMod *400)) * 0.01 ;
+				camera.position.y += ( -50* (zMod-1)+100- mouseY  - camera.position.y ) * 0.01;
+				//camera.position.z += ( zMod * 1800 - camera.position.z ) * 0.002 ;
+				
+					for ( var i = 0; i < morphs.length; i ++ ) {
+
+						morph = morphs[ i ];
+
+						morph.updateAnimation( 1000 * delta );
+
+						morph.position.x += morph.speed * delta;
+
+						if ( morph.position.x  > 2000 )  {
+
+							morph.position.x = -1500 - Math.random() * 500;
+
+						}
+
+                        }
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	
+
+</body></html>
