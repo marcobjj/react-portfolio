@@ -12,7 +12,6 @@ function Portfolio() {
 
   return (
     <section className="my-5">
-    <h1 id="resume">This is my Portfolio</h1>
     <div className="row">
 
     {projects.map(project => 

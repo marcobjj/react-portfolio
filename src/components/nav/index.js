@@ -15,12 +15,8 @@ function Nav(props) {
 
 
     return (
-        <header className="flex-row px-1">
-            <h2>
-                <a data-testid="link" href="/">
-                
-        </a>
-            </h2>
+   
+        
             <nav>
                 <ul className="flex-row">
                  
@@ -42,7 +38,7 @@ function Nav(props) {
                     ))}
                 </ul>
             </nav>
-        </header>
+      
     );
 }
 

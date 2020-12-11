@@ -5,6 +5,7 @@ import Header from "./components/header";
 import Resume from "./components/resume"
 import Portfolio from "./components/portfolio";
 import Contact from "./components/contact";
+import Footer from "./components/footer"
 
 
 
@@ -16,11 +17,11 @@ function App() {
 
   return (
     <div>
-      <Nav
+      <Header
         categories={categories}
         setCurrentCategory={setCurrentCategory}
         currentCategory={currentCategory}
-      ></Nav>
+      ></Header>
       <main>
         <div>
 
@@ -31,6 +32,7 @@ function App() {
 
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
