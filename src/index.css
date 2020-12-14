@@ -217,6 +217,15 @@ footer a {
   flex-wrap: wrap;
 }
 
+.about {
+
+  display:flex;
+  flex-direction: column;
+  justify-content:center;
+  align-items: center;
+  text-align: center;
+}
+
 .space-between {
   justify-content: space-between;
 }

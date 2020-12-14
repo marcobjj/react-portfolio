@@ -3,6 +3,7 @@ import React from 'react';
 function Resume() {
   return (
     <section className="my-5">
+    <a href="https://marcobjj.github.io/react-portfolio/resume.pdf" target="_blank">Download PDF</a>
     <h4>Degrees:</h4><br></br>
     Graphic Design 2005 (UFSC)<br></br>
     Coding Bootcamp 2021 (UC Berkeley)<br></br><br></br>
