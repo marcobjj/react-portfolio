@@ -5,9 +5,9 @@ main {
 }
 
 :root {
-  --primary: #432534;
+  --primary: #B12704;
   --secondary: #c44900;
-  --tertiary: #B12704;
+  --tertiary: #432534;
   --light: #fff;
   --dark: #183a37;
   --darker: #04151f;
@@ -417,6 +417,18 @@ a {
   width: 70%;
   margin-left: 15%;
   margin-top: 65%;
+}
+
+.flex-center {
+
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+
+.description {
+  max-width:300px;
 }
 
 .navActive {

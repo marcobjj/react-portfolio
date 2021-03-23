@@ -53,6 +53,7 @@ function ContactForm() {
     return (
         <section>
             <h1>Contact me</h1>
+            <h4><a href="mailto:marcobjj@gmail.com">marcobjj@gmail.com</a></h4>
             <form id="contact-form" onSubmit={handleSubmit}>
                 <div>
                     <label htmlFor="name">Name:</label><br></br>

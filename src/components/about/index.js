@@ -15,7 +15,7 @@ function About() {
   <p>Greater Los Angeles Area.</p>
 
 
-  <p>I started out as Adobe Flash and Actionscript developer, which I did for 6 years. Due to the similarities between Actionscript and Javascript I was able to transition to Javascript based development quickly. I'm generalist (Full stack) developer and work both front-end / UX development, but have participated in and enjoy backend dev work just as much. </p>
+  <p>Originally a graphic designer with a Bachelor’s Degree in 2005, starting out as a Flash animator, which led to Actionscript development projects, and eventually a full time Actionscript, Flash and AIR development career. Due to the similarities between AS and Javascript, I was able to transition smoothly to HTML5 as it became the industry standard. UC Berkeley certified full-stack developer as of 2021. </p>
    </div>
   </section>
   

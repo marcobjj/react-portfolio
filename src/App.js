@@ -10,7 +10,7 @@ import Footer from "./components/footer"
 
 
 function App() {
-  const [categories] = useState(["About","Resume","Portfolio","Contact"]);
+  const [categories] = useState(["About","Technical Skills","Portfolio","Contact"]);
 
   const [currentCategory, setCurrentCategory] = useState(categories[0]);
   
@@ -25,7 +25,7 @@ function App() {
       <main>
         <div>
 
-          {currentCategory === "Resume" &&  <Resume/>}
+          {currentCategory === "Technical Skills" &&  <Resume/>}
           {currentCategory === "Portfolio" &&  <Portfolio/>}
           {currentCategory === "About" &&  <About/>}
           {currentCategory === "Contact" &&  <Contact/>}
